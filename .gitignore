@@ -1,0 +1,59 @@
+# === NODE ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === ENVIRONMENT ===
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# === LOG FILES ===
+logs/
+*.log
+
+# === OS FILES ===
+.DS_Store
+Thumbs.db
+
+# === VSCODE ===
+.vscode/
+
+# === BUILD FILES ===
+dist/
+build/
+
+# === COVERAGE ===
+coverage/
+
+# === REACT DEV BUILD ===
+*.local
+.cache/
+.next/
+out/
+
+# === BACKEND ===
+backend/node_modules/
+backend/dist/
+backend/*.log
+
+# === FRONTEND ===
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/*.log
+
+# === DATABASE FILES ===
+*.sqlite
+*.sqlite3
+*.db
+
+# === OTHER ===
+*.tgz
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

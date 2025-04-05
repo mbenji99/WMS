@@ -1,0 +1,51 @@
+.login-container {
+  max-width: 400px;
+  margin: auto;
+  text-align: center;
+  padding: 2rem;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  margin-top: 5vh;
+  background: white;
+}
+
+.company-name {
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: #2a3eb1;
+}
+
+.system-title {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+.login-form input {
+  display: block;
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+.login-form button {
+  background-color: #2a3eb1;
+  color: white;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.user-selection {
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.error-msg {
+  color: red;
+  margin-top: 10px;
+}
