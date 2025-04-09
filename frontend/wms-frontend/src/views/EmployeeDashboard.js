@@ -1,30 +1,66 @@
 // src/views/EmployeeDashboard.js
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  viewShift,
   viewSchedule,
+  viewShift,
+  checkClockStatus,
   clockIn,
   clockOut,
-  checkClockStatus,
 } from '../api/api';
 import '../styles/EmployeeDashboardView.css';
 import DashboardWrapper from '../components/DashboardWrapper';
+import { useNavigate } from 'react-router-dom';
 
 const EmployeeDashboard = () => {
+  const employeeId = localStorage.getItem('employee-id');
+  const employeeName = localStorage.getItem('employee-name');
+  const navigate = useNavigate();
+
   const [shifts, setShifts] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [isClockedIn, setIsClockedIn] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
   const [showSchedules, setShowSchedules] = useState(false);
-  const [isClockedIn, setIsClockedIn] = useState(false);
-  const [employeeId, setEmployeeId] = useState(null);
-  const [employeeName, setEmployeeName] = useState('');
+  const [clockedInSince, setClockedInSince] = useState(null);
+  const [workedMinutes, setWorkedMinutes] = useState(0);
+
+  useEffect(() => {
+    const fetchClockStatus = async () => {
+      try {
+        const status = await checkClockStatus();
+        setIsClockedIn(status.isClockedIn);
+        if (status.isClockedIn) {
+          setClockedInSince(new Date());
+        } else {
+          setClockedInSince(null);
+          setWorkedMinutes(0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch clock status:', err);
+      }
+    };
+
+    fetchClockStatus();
+  }, []);
+
+  useEffect(() => {
+    let intervalId;
+    if (isClockedIn && clockedInSince) {
+      intervalId = setInterval(() => {
+        const now = new Date();
+        const diff = Math.floor((now - clockedInSince) / 60000);
+        setWorkedMinutes(diff);
+      }, 1000);
+    }
+    return () => clearInterval(intervalId);
+  }, [isClockedIn, clockedInSince]);
 
   const fetchShiftData = async () => {
     try {
       const data = await viewShift();
       setShifts(data);
     } catch (err) {
-      console.error('Failed to fetch shifts:', err);
+      console.error('Error fetching shifts:', err);
     }
   };
 
@@ -33,55 +69,51 @@ const EmployeeDashboard = () => {
       const data = await viewSchedule();
       setSchedules(data);
     } catch (err) {
-      console.error('Failed to fetch schedules:', err);
-    }
-  };
-
-  const fetchClockStatus = async () => {
-    try {
-      const { isClockedIn } = await checkClockStatus();
-      setIsClockedIn(isClockedIn);
-    } catch (err) {
-      console.error('Clock status check failed:', err);
+      console.error('Error fetching schedule:', err);
     }
   };
 
   const toggleClock = async () => {
-    const id = localStorage.getItem('employee-id');
-    if (!id) return;
-
     try {
       if (isClockedIn) {
-        await clockOut(id);
+        await clockOut(employeeId);
+        setIsClockedIn(false);
+        setClockedInSince(null);
+        setWorkedMinutes(0);
       } else {
-        await clockIn(id);
+        await clockIn(employeeId);
+        setIsClockedIn(true);
+        setClockedInSince(new Date());
       }
-      fetchClockStatus();
     } catch (err) {
       console.error('Clock toggle error:', err);
     }
   };
 
-  useEffect(() => {
-    const id = localStorage.getItem('employee-id');
-    const name = localStorage.getItem('employee-name');
-    setEmployeeId(id);
-    setEmployeeName(name || 'Employee');
-    fetchClockStatus();
-  }, []);
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate('/');
+  };
 
   return (
-    <DashboardWrapper>
+    <DashboardWrapper userType="Employee">
       <div className="employee-dashboard">
         <div className="employee-header">
-          <h2>Welcome, {employeeName} (ID: {employeeId})</h2>
+          <h2>Welcome, Employee {employeeName} (ID: {employeeId})</h2>
           <button
             className={`clock-button ${isClockedIn ? 'clocked-in' : 'clocked-out'}`}
             onClick={toggleClock}
           >
             {isClockedIn ? 'Clock Out' : 'Clock In'}
           </button>
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
+
+        {isClockedIn && (
+          <p className="clock-timer">🕒 Worked Today: {workedMinutes} minute(s)</p>
+        )}
 
         <div className="button-bar">
           <button onClick={() => {
@@ -90,6 +122,7 @@ const EmployeeDashboard = () => {
           }}>
             {showShifts ? 'Hide Shifts' : 'View Shifts'}
           </button>
+
           <button onClick={() => {
             if (!showSchedules) fetchScheduleData();
             setShowSchedules(!showSchedules);

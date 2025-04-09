@@ -23,7 +23,7 @@ db.connect(async (err) => {
     const hashedManagerPassword = await bcrypt.hash(managerPassword, 10);
 
     db.query(
-      'INSERT INTO managers (manager_id, employee_name, password) VALUES (?, ?, ?)',
+      'INSERT INTO managers (manager_id, name, password) VALUES (?, ?, ?)',
       [manager_id, 'Admin User', hashedManagerPassword],
       (error) => {
         if (error) {
@@ -39,26 +39,17 @@ db.connect(async (err) => {
       {
         id: 1001,
         name: 'John Doe',
-        email: 'john.doe@example.com',
         password: 'employee456',
-        role: 'employee',
-        department: 'HR',
       },
       {
         id: 1002,
         name: 'Jane Smith',
-        email: 'jane.smith@example.com',
         password: 'employee789',
-        role: 'employee',
-        department: 'Marketing',
       },
       {
         id: 1003,
         name: 'Michael Lee',
-        email: 'michael.lee@example.com',
         password: 'employee123',
-        role: 'employee',
-        department: 'IT',
       },
     ];
 
@@ -67,8 +58,8 @@ db.connect(async (err) => {
       const hashedPassword = await bcrypt.hash(emp.password, 10);
 
       db.query(
-        'INSERT INTO employees (employee_id, name, email, password, role, department) VALUES (?, ?, ?, ?, ?, ?)',
-        [emp.id, emp.name, emp.email, hashedPassword, emp.role, emp.department],
+        'INSERT INTO employees (employee_id, name, password) VALUES (?, ?, ?)',
+        [emp.id, emp.name, hashedPassword],
         (error) => {
           if (error) {
             console.error(`Error inserting employee ${emp.id}:`, error);

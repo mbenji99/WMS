@@ -15,7 +15,8 @@ class ManagerController {
   }
 
   static async viewAllSchedules(req, res) {
-     try { const raw = await Schedule.getAll(); 
+    try {
+      const raw = await Schedule.getAll();
       const grouped = {};
       raw.forEach(schedule => {
         const id = schedule.employee_id;
@@ -32,25 +33,71 @@ class ManagerController {
           end_time: schedule.end_time,
         });
       });
-      
+
       res.status(200).json(grouped);
-      } catch (err) { res.status(500).json({ error: err.message }); 
-    } 
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
 
   static async createShift(req, res) {
     const { employee_id, shift_date, start_time, end_time } = req.body;
+
     try {
-      const shift = new Shift(null, employee_id, shift_date, start_time, end_time);
-      await shift.save();
+      const checkQuery = `
+        SELECT * FROM shifts 
+        WHERE employee_id = ? AND shift_date = ? AND start_time = ? AND end_time = ?
+      `;
+      db.query(checkQuery, [employee_id, shift_date, start_time, end_time], async (err, results) => {
+        if (err) return res.status(500).json({ error: 'Database error during shift validation' });
 
-      await new AuditLog({
-        employee_id,
-        action: 'Shift Created',
-        timestamp: new Date()
-      }).save();
+        if (results.length > 0) {
+          return res.status(400).json({ error: 'Shift already exists for this employee at the specified date and time.' });
+        }
 
-      res.status(201).json({ message: 'Shift created successfully' });
+        const shift = new Shift(null, employee_id, shift_date, start_time, end_time);
+        await shift.save();
+
+        await new AuditLog({
+          employee_id,
+          action: 'Shift Created',
+          timestamp: new Date()
+        }).save();
+
+        res.status(201).json({ message: 'Shift created successfully' });
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+
+  static async createSchedule(req, res) {
+    const { employee_id } = req.body;
+
+    try {
+      // Check if this employee already has schedule entries
+      const checkQuery = `
+        SELECT COUNT(*) AS count FROM schedules
+        WHERE employee_id = ?
+      `;
+
+      db.query(checkQuery, [employee_id], async (err, results) => {
+        if (err) return res.status(500).json({ error: 'Database error during schedule validation' });
+
+        const count = results[0].count;
+        if (count > 0) {
+          return res.status(400).json({ error: 'Schedule already exists for this employee. Please edit or delete it.' });
+        }
+
+        const result = await Schedule.createFromShifts(employee_id);
+        await new AuditLog({
+          employee_id,
+          action: 'Schedule Created',
+          timestamp: new Date()
+        }).save();
+
+        res.status(201).json(result);
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -80,21 +127,6 @@ class ManagerController {
       await shift.delete();
 
       res.status(200).json({ message: 'Shift deleted successfully' });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
-    }
-  }
-
-  static async createSchedule(req, res) {
-    const { employee_id } = req.body;
-    try {
-      const result = await Schedule.createFromShifts(employee_id);
-      await new AuditLog({
-        employee_id,
-        action: 'Schedule Created',
-        timestamp: new Date()
-      }).save();
-      res.status(201).json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

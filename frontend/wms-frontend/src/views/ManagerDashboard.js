@@ -1,4 +1,5 @@
 // src/views/ManagerDashboard.js
+
 import React, { useState } from 'react';
 import {
   createShift,
@@ -20,11 +21,14 @@ import {
   FaFilter,
   FaCalendarAlt,
   FaEye,
+  FaSignOutAlt,
 } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import '../styles/ManagerDashboardView.css';
 import DashboardWrapper from '../components/DashboardWrapper';
 
 const ManagerDashboard = () => {
+  const navigate = useNavigate();
   const [shifts, setShifts] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [reportData, setReportData] = useState(null);
@@ -43,6 +47,12 @@ const ManagerDashboard = () => {
     startDate: '',
     endDate: '',
   });
+
+  const handleLogout = () => {
+    localStorage.removeItem('manager-id');
+    localStorage.removeItem('password1');
+    navigate('/');
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -205,210 +215,186 @@ const ManagerDashboard = () => {
       <div className="manager-dashboard">
         <h2>Manager Dashboard</h2>
 
+        <button className="logout-btn" onClick={handleLogout}>
+          <FaSignOutAlt /> Logout
+        </button>
+
         <div className="filter-bar">
-      <label>
-        <FaFilter /> Filter by Employee ID:
-        <input
-          type="text"
-          value={filterEmployeeId}
-          onChange={(e) => setFilterEmployeeId(e.target.value)}
-          placeholder="Enter Employee ID"
-        />
-      </label>
-    </div>
+          <label>
+            <FaFilter /> Filter by Employee ID:
+            <input
+              type="text"
+              value={filterEmployeeId}
+              onChange={(e) => setFilterEmployeeId(e.target.value)}
+              placeholder="Enter Employee ID"
+            />
+          </label>
+        </div>
 
-    <div className="button-group">
-      <button onClick={handleViewShifts}>
-        <FaEye /> {showShiftTable ? 'Hide Shifts' : 'View Shifts'}
-      </button>
-      <button onClick={handleViewSchedules}>
-        <FaCalendarAlt /> {showScheduleTable ? 'Hide Schedule' : 'View Schedule'}
-      </button>
-      <button onClick={handleCreateSchedule}>
-        <FaCalendarPlus /> Create Schedule
-      </button>
-      <button onClick={handleDeleteSchedule}>
-        <FaCalendarTimes /> Delete Schedule
-      </button>
-    </div>
+        <div className="button-group">
+          <button onClick={handleViewShifts}>
+            <FaEye /> {showShiftTable ? 'Hide Shifts' : 'View Shifts'}
+          </button>
+          <button onClick={handleViewSchedules}>
+            <FaCalendarAlt /> {showScheduleTable ? 'Hide Schedule' : 'View Schedule'}
+          </button>
+          <button onClick={handleCreateSchedule}>
+            <FaCalendarPlus /> Create Schedule
+          </button>
+          <button onClick={handleDeleteSchedule}>
+            <FaCalendarTimes /> Delete Schedule
+          </button>
+        </div>
 
-    <form
-      className="create-shift-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleCreateShift();
-      }}
-    >
-      <h3>Create New Shift</h3>
-      <input
-        type="text"
-        name="employee_id"
-        placeholder="Employee ID"
-        value={formData.employee_id}
-        onChange={handleInputChange}
-      />
-      <input type="date" name="shift_date" value={formData.shift_date} onChange={handleInputChange} />
-      <input type="time" name="start_time" value={formData.start_time} onChange={handleInputChange} />
-      <input type="time" name="end_time" value={formData.end_time} onChange={handleInputChange} />
-      <button type="submit">Create Shift</button>
-    </form>
-
-    {showShiftTable && shifts.length > 0 && (
-      <div className="table-section">
-        <h3>Shifts</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Emp ID</th>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shifts.map((shift) => (
-              <tr key={shift.shift_id}>
-                <td>{shift.employee_id}</td>
-                <td>{shift.formatted_date}</td>
-                <td>{shift.day_of_week}</td>
-                <td>{shift.start_time}</td>
-                <td>{shift.end_time}</td>
-                <td>
-                  <button onClick={() => handleEditShift(shift)}><FaEdit /></button>
-                  <button onClick={() => handleDeleteShift(shift.shift_id)}><FaTrash /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-
-    {showScheduleTable && schedules.length > 0 && (
-      <div className="table-section">
-        <h3>Schedules</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Emp ID</th>
-              <th>Employee Name</th>
-              <th>Date</th>
-              <th>Day</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {schedules.map((item) => (
-              <tr key={item.shift_id}>
-                <td>{item.employee_id}</td>
-                <td>{item.employee_name}</td>
-                <td>{item.date}</td>
-                <td>{item.day_of_week}</td>
-                <td>{item.start_time}</td>
-                <td>{item.end_time}</td>
-                <td><button onClick={() => handleEditSchedule(item)}><FaEdit /></button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-
-    <div className="report-section">
-      <h3><FaFileAlt /> Generate Report</h3>
-      <label>
-        Report Type:
-        <select
-          value={reportFilters.reportType}
-          onChange={(e) => setReportFilters({ ...reportFilters, reportType: e.target.value })}
+        <form
+          className="create-shift-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateShift();
+          }}
         >
-          <option value="basic">Basic</option>
-          <option value="clocked">Clocked</option>
-        </select>
-      </label>
-      <input
-        type="date"
-        value={reportFilters.startDate}
-        onChange={(e) => setReportFilters({ ...reportFilters, startDate: e.target.value })}
-      />
-      <input
-        type="date"
-        value={reportFilters.endDate}
-        onChange={(e) => setReportFilters({ ...reportFilters, endDate: e.target.value })}
-      />
-      <button onClick={handleGenerateReport}>Generate</button>
+          <h3>Create New Shift</h3>
+          <input
+            type="text"
+            name="employee_id"
+            placeholder="Employee ID"
+            value={formData.employee_id}
+            onChange={handleInputChange}
+          />
+          <input type="date" name="shift_date" value={formData.shift_date} onChange={handleInputChange} />
+          <input type="time" name="start_time" value={formData.start_time} onChange={handleInputChange} />
+          <input type="time" name="end_time" value={formData.end_time} onChange={handleInputChange} />
+          <button type="submit">Create Shift</button>
+        </form>
 
-      {reportData && Array.isArray(reportData) && (
-        <div className="report-output">
-          <h4>Clocked Report Results</h4>
-          <table>
-            <thead>
-              <tr>
-                <th>Emp ID</th>
-                <th>Name</th>
-                <th>Date</th>
-                <th>Scheduled Start</th>
-                <th>Scheduled End</th>
-                <th>Clock In</th>
-                <th>Clock Out</th>
-                <th>Minutes Worked</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportData.map((row, idx) => (
-                <tr key={idx}>
-                  <td>{row.employee_id}</td>
-                  <td>{row.employee_name}</td>
-                  <td>{new Date(row.shift_date).toLocaleDateString()}</td>
-                  <td>{row.scheduled_start}</td>
-                  <td>{row.scheduled_end}</td>
-                  <td>{row.clock_in_time || 'N/A'}</td>
-                  <td>{row.clock_out_time || 'N/A'}</td>
-                  <td>{row.minutes_worked !== null ? row.minutes_worked : 'N/A'}</td>
+        {showShiftTable && shifts.length > 0 && (
+          <div className="table-section">
+            <h3>Shifts</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Emp ID</th>
+                  <th>Date</th>
+                  <th>Day</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {reportData && !Array.isArray(reportData) && (
-        <div className="report-output">
-          <h4>Basic Report Results</h4>
-          {Object.entries(reportData).map(([id, data]) => (
-            <div key={id}>
-              <h5>{data.employeeName} (ID: {id})</h5>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Start</th>
-                    <th>End</th>
+              </thead>
+              <tbody>
+                {shifts.map((shift) => (
+                  <tr key={shift.shift_id}>
+                    <td>{shift.employee_id}</td>
+                    <td>{shift.formatted_date}</td>
+                    <td>{shift.day_of_week}</td>
+                    <td>{shift.start_time}</td>
+                    <td>{shift.end_time}</td>
+                    <td>
+                      <button onClick={() => handleEditShift(shift)}><FaEdit /></button>
+                      <button onClick={() => handleDeleteShift(shift.shift_id)}><FaTrash /></button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {data.shifts.map((s, i) => (
-                    <tr key={i}>
-                      <td>{new Date(s.date).toLocaleDateString()}</td>
-                      <td>{s.startTime}</td>
-                      <td>{s.endTime}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-    {error && <p className="error-msg">{error}</p>}
+        {showScheduleTable && schedules.length > 0 && (
+          <div className="table-section">
+            <h3>Schedules</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Emp ID</th>
+                  <th>Employee Name</th>
+                  <th>Date</th>
+                  <th>Day</th>
+                  <th>Start</th>
+                  <th>End</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedules.map((item) => (
+                  <tr key={item.shift_id}>
+                    <td>{item.employee_id}</td>
+                    <td>{item.employee_name}</td>
+                    <td>{item.date}</td>
+                    <td>{item.day_of_week}</td>
+                    <td>{item.start_time}</td>
+                    <td>{item.end_time}</td>
+                    <td><button onClick={() => handleEditSchedule(item)}><FaEdit /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="report-section">
+          <h3><FaFileAlt /> Generate Report</h3>
+          <label>
+            Report Type:
+            <select
+              value={reportFilters.reportType}
+              onChange={(e) => setReportFilters({ ...reportFilters, reportType: e.target.value })}
+            >
+              <option value="basic">Basic</option>
+              <option value="clocked">Clocked</option>
+            </select>
+          </label>
+          <input
+            type="date"
+            value={reportFilters.startDate}
+            onChange={(e) => setReportFilters({ ...reportFilters, startDate: e.target.value })}
+          />
+          <input
+            type="date"
+            value={reportFilters.endDate}
+            onChange={(e) => setReportFilters({ ...reportFilters, endDate: e.target.value })}
+          />
+          <button onClick={handleGenerateReport}>Generate</button>
+
+          {reportData && Array.isArray(reportData) && (
+  <div className="report-output">
+    <h4>Report Results</h4>
+    <table className="report-table">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Name</th>
+          <th>Shift Date</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Clock In</th>
+          <th>Clock Out</th>
+          <th>Minutes Worked</th>
+        </tr>
+      </thead>
+      <tbody>
+        {reportData.map((entry, index) => (
+          <tr key={index}>
+            <td>{entry.employee_id}</td>
+            <td>{entry.employee_name}</td>
+            <td>{new Date(entry.shift_date).toLocaleDateString()}</td>
+            <td>{entry.scheduled_start}</td>
+            <td>{entry.scheduled_end}</td>
+            <td>{entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString() : '—'}</td>
+            <td>{entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString() : '—'}</td>
+            <td>{entry.minutes_worked !== null ? entry.minutes_worked : '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
-</DashboardWrapper>
+)}
+
+        </div>
+
+        {error && <p className="error-msg">{error}</p>}
+      </div>
+    </DashboardWrapper>
   );
 };
 

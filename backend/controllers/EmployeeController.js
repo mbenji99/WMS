@@ -1,52 +1,36 @@
+const ClockInOut = require('../models/ClockInOut');
 const db = require('../config/db');
 
 class EmployeeController {
-  static clockIn(req, res) {
+  static async clockIn(req, res) {
     const employee_id = req.body.employee_id;
-
-    const query = `
-      INSERT INTO clock_in_out_logs (employee_id, clock_in_time)
-      VALUES (?, NOW())
-    `;
-
-    db.query(query, [employee_id], (err) => {
-      if (err) return res.status(500).json({ error: 'Failed to clock in' });
+    try {
+      await ClockInOut.logClockIn(employee_id);
       res.status(200).json({ message: 'Clocked in successfully' });
-    });
+    } catch (err) {
+      res.status(500).json({ error: err.message || 'Failed to clock in' });
+    }
   }
 
-  static clockOut(req, res) {
+  static async clockOut(req, res) {
     const employee_id = req.body.employee_id;
-
-    const query = `
-      UPDATE clock_in_out_logs
-      SET clock_out_time = NOW()
-      WHERE employee_id = ? AND clock_out_time IS NULL
-    `;
-
-    db.query(query, [employee_id], (err, result) => {
-      if (err) return res.status(500).json({ error: 'Failed to clock out' });
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'No active clock-in found' });
-      }
-      res.status(200).json({ message: 'Clocked out successfully' });
-    });
+    try {
+      const result = await ClockInOut.logClockOut(employee_id);
+      res.status(200).json({ message: result.message });
+    } catch (err) {
+      res.status(500).json({ error: err.message || 'Failed to clock out' });
+    }
   }
 
-  static checkClockStatus(req, res) {
+  static async checkClockStatus(req, res) {
     const employee_id = req.headers['employee-id'];
-
-    const query = `
-      SELECT * FROM clock_in_out_logs
-      WHERE employee_id = ? AND clock_out_time IS NULL
-    `;
-
-    db.query(query, [employee_id], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Failed to check clock status' });
-
-      const isClockedIn = results.length > 0;
-      res.status(200).json({ isClockedIn });
-    });
+    try {
+      const isClockedIn = await ClockInOut.isClockedIn(employee_id);
+      const minutesWorked = await ClockInOut.getMinutesWorkedToday(employee_id);
+      res.status(200).json({ isClockedIn, minutesWorked });
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to check clock status' });
+    }
   }
 
   static viewSchedule(req, res) {

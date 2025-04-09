@@ -6,6 +6,26 @@
   margin: 0 auto;
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
+  position: relative;
+}
+
+/* Logout Button */
+.logout-button {
+  position: right;
+  top: 20px;
+  right: 30px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
 }
 
 h2, h3, h4 {
@@ -88,6 +108,7 @@ h2, h3, h4 {
 .table-section th {
   background-color: #1c3763;
   font-weight: bold;
+  color: white;
 }
 
 .table-section tr:hover {
@@ -133,6 +154,7 @@ h2, h3, h4 {
 
 .report-output th {
   background-color: #000000;
+  color: white;
 }
 
 .error-msg {
