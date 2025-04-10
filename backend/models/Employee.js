@@ -1,4 +1,4 @@
-// models/Employee.js
+
 const db = require('../config/db');
 
 class Employee {

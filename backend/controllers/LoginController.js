@@ -1,4 +1,3 @@
-// controllers/loginController.js
 
 const Login = require('../models/Login');
 

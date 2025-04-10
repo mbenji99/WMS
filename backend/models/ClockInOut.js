@@ -1,4 +1,4 @@
-// /models/ClockInOut.js
+
 const db = require('../config/db');
 
 class ClockInOut {

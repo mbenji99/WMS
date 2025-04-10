@@ -1,4 +1,3 @@
-/* src/styles/ManagerDashboardView.css */
 
 .manager-dashboard {
   padding: 20px;
@@ -11,7 +10,7 @@
 
 /* Logout Button */
 .logout-button {
-  position: right;
+  position: absolute;
   top: 20px;
   right: 30px;
   background-color: #dc3545;

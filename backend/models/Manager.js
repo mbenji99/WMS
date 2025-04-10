@@ -1,4 +1,4 @@
-// models/Manager.js
+
 const db = require('../config/db');
 
 class Manager {
