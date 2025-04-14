@@ -3,11 +3,18 @@ const Schedule = require('../models/Schedule');
 class ScheduleController {
   async createSchedule(req, res) {
     try {
-      const { employee_id } = req.body;
+      const { employee_id, shift_ids } = req.body;
+
+      if (!employee_id || !Array.isArray(shift_ids) || shift_ids.length === 0) {
+        return res.status(400).json({ error: 'Invalid or missing schedule data' });
+      }
+
       const schedule = new Schedule();
-      const result = await schedule.generateFromShifts(employee_id);
+      const result = await schedule.generateFromShifts(employee_id, shift_ids);
+
       res.status(201).json({ message: 'Schedule created', result });
     } catch (err) {
+      console.error('Schedule creation error:', err);
       res.status(500).json({ error: 'Failed to create schedule' });
     }
   }

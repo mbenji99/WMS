@@ -1,5 +1,3 @@
-// src/views/ManagerDashboard.js
-
 import React, { useState } from 'react';
 import {
   createShift,
@@ -30,6 +28,7 @@ import DashboardWrapper from '../components/DashboardWrapper';
 const ManagerDashboard = () => {
   const navigate = useNavigate();
   const [shifts, setShifts] = useState([]);
+  const [selectedShifts, setSelectedShifts] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [reportData, setReportData] = useState(null);
   const [error, setError] = useState('');
@@ -84,12 +83,18 @@ const ManagerDashboard = () => {
 
   const handleCreateSchedule = async () => {
     if (!filterEmployeeId) return alert('Enter Employee ID to create schedule.');
+    if (!selectedShifts || selectedShifts.length === 0) return alert('Select at least one shift.');
+
+    const shiftIds = selectedShifts.map(s => s.shift_id);
+    console.log("Selected shift IDs:", shiftIds);
+
     try {
-      const response = await createSchedule(filterEmployeeId);
+      const response = await createSchedule(filterEmployeeId, shiftIds);
       alert(response.message);
       if (showScheduleTable) handleViewSchedules();
     } catch (err) {
-      setError(err.error || 'Failed to create schedule.');
+      console.error("Schedule creation failed:", err.response?.data || err.message);
+      setError(err.response?.data?.error || 'Failed to create schedule.');
     }
   };
 
@@ -123,11 +128,13 @@ const ManagerDashboard = () => {
   };
 
   const handleViewSchedules = async () => {
+
     if (showScheduleTable) return setShowScheduleTable(false);
     try {
       const managerId = localStorage.getItem('manager-id');
       const password = localStorage.getItem('password1');
       const data = await viewManagerSchedule(managerId, password);
+      console.log("🔍 Schedule data returned from backend:", data);
       const flat = Object.entries(data).flatMap(([id, value]) =>
         value.schedule.map((s, index) => ({
           shift_id: index + 1,
@@ -246,13 +253,10 @@ const ManagerDashboard = () => {
           </button>
         </div>
 
-        <form
-          className="create-shift-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateShift();
-          }}
-        >
+        <form className="create-shift-form" onSubmit={(e) => {
+          e.preventDefault();
+          handleCreateShift();
+        }}>
           <h3>Create New Shift</h3>
           <input
             type="text"
@@ -273,6 +277,7 @@ const ManagerDashboard = () => {
             <table>
               <thead>
                 <tr>
+                  <th>Select</th>
                   <th>Emp ID</th>
                   <th>Date</th>
                   <th>Day</th>
@@ -284,6 +289,19 @@ const ManagerDashboard = () => {
               <tbody>
                 {shifts.map((shift) => (
                   <tr key={shift.shift_id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedShifts.some(s => s.shift_id === shift.shift_id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedShifts(prev => [...prev, shift]);
+                          } else {
+                            setSelectedShifts(prev => prev.filter(s => s.shift_id !== shift.shift_id));
+                          }
+                        }}
+                      />
+                    </td>
                     <td>{shift.employee_id}</td>
                     <td>{shift.formatted_date}</td>
                     <td>{shift.day_of_week}</td>
@@ -299,38 +317,41 @@ const ManagerDashboard = () => {
             </table>
           </div>
         )}
-
-        {showScheduleTable && schedules.length > 0 && (
-          <div className="table-section">
-            <h3>Schedules</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Emp ID</th>
-                  <th>Employee Name</th>
-                  <th>Date</th>
-                  <th>Day</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedules.map((item) => (
-                  <tr key={item.shift_id}>
-                    <td>{item.employee_id}</td>
-                    <td>{item.employee_name}</td>
-                    <td>{item.date}</td>
-                    <td>{item.day_of_week}</td>
-                    <td>{item.start_time}</td>
-                    <td>{item.end_time}</td>
-                    <td><button onClick={() => handleEditSchedule(item)}><FaEdit /></button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {showScheduleTable && schedules.length > 0 && (
+  <div className="table-section">
+    <h3>Schedules</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Emp ID</th>
+          <th>Employee Name</th>
+          <th>Date</th>
+          <th>Day</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {schedules.map((item) => (
+          <tr key={`${item.schedule_id}-${item.shift_id || item.schedule_id}`}>
+            <td>{item.employee_id}</td>
+            <td>{item.employee_name}</td>
+            <td>{item.shift_date}</td>
+            <td>{item.day_of_week}</td>
+            <td>{item.start_time}</td>
+            <td>{item.end_time}</td>
+            <td>
+              <button onClick={() => handleEditSchedule(item)}>
+                <FaEdit />
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 
         <div className="report-section">
           <h3><FaFileAlt /> Generate Report</h3>
@@ -357,39 +378,38 @@ const ManagerDashboard = () => {
           <button onClick={handleGenerateReport}>Generate</button>
 
           {reportData && Array.isArray(reportData) && (
-  <div className="report-output">
-    <h4>Report Results</h4>
-    <table className="report-table">
-      <thead>
-        <tr>
-          <th>Employee ID</th>
-          <th>Name</th>
-          <th>Shift Date</th>
-          <th>Start Time</th>
-          <th>End Time</th>
-          <th>Clock In</th>
-          <th>Clock Out</th>
-          <th>Minutes Worked</th>
-        </tr>
-      </thead>
-      <tbody>
-        {reportData.map((entry, index) => (
-          <tr key={index}>
-            <td>{entry.employee_id}</td>
-            <td>{entry.employee_name}</td>
-            <td>{new Date(entry.shift_date).toLocaleDateString()}</td>
-            <td>{entry.scheduled_start}</td>
-            <td>{entry.scheduled_end}</td>
-            <td>{entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString() : '—'}</td>
-            <td>{entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString() : '—'}</td>
-            <td>{entry.minutes_worked !== null ? entry.minutes_worked : '—'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-
+            <div className="report-output">
+              <h4>Report Results</h4>
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Shift Date</th>
+                    <th>Start Time</th>
+                    <th>End Time</th>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                    <th>Minutes Worked</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((entry, index) => (
+                    <tr key={index}>
+                      <td>{entry.employee_id}</td>
+                      <td>{entry.employee_name}</td>
+                      <td>{new Date(entry.shift_date).toLocaleDateString()}</td>
+                      <td>{entry.scheduled_start}</td>
+                      <td>{entry.scheduled_end}</td>
+                      <td>{entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString() : '—'}</td>
+                      <td>{entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString() : '—'}</td>
+                      <td>{entry.minutes_worked !== null ? entry.minutes_worked : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {error && <p className="error-msg">{error}</p>}

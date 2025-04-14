@@ -97,14 +97,23 @@ export const deleteShift = async (shiftId) => {
   return response.data;
 };
 
-export const createSchedule = async (employeeId) => {
+export const createSchedule = async (employeeId, shiftIds) => {
+  console.log("Sending schedule request:", {
+    employee_id: employeeId,
+    shift_ids: shiftIds
+  });
+
   const response = await axios.post(`${API_BASE}/manager/create-schedule`, {
     employee_id: employeeId,
+    shift_ids: shiftIds
   }, {
     headers: getManagerAuthHeaders(),
   });
+
   return response.data;
 };
+
+
 
 export const editSchedule = async (shiftId, updatedData) => {
   const response = await axios.put(`${API_BASE}/manager/edit-schedule/${shiftId}`, updatedData, {

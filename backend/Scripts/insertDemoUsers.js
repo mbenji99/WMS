@@ -17,22 +17,35 @@ db.connect(async (err) => {
   console.log('Connected to database.');
 
   try {
-    // Add Manager
-    const manager_id = 1;
-    const managerPassword = 'password123';
-    const hashedManagerPassword = await bcrypt.hash(managerPassword, 10);
+    // Add Multiple Managers
+    const managers = [
+      {
+        id: 1,
+        name: 'Admin User',
+        password: 'password123',
+      },
+      {
+        id: 2,
+        name: 'Second Admin',
+        password: 'admin456',
+      },
+    ];
 
-    db.query(
-      'INSERT INTO managers (manager_id, name, password) VALUES (?, ?, ?)',
-      [manager_id, 'Admin User', hashedManagerPassword],
-      (error) => {
-        if (error) {
-          console.error('Error inserting manager:', error);
-        } else {
-          console.log('Manager added successfully.');
+    for (const mgr of managers) {
+      const hashedManagerPassword = await bcrypt.hash(mgr.password, 10);
+
+      db.query(
+        'INSERT INTO managers (manager_id, name, password) VALUES (?, ?, ?)',
+        [mgr.id, mgr.name, hashedManagerPassword],
+        (error) => {
+          if (error) {
+            console.error(`Error inserting manager ${mgr.id}:`, error);
+          } else {
+            console.log(`Manager ${mgr.id} added successfully.`);
+          }
         }
-      }
-    );
+      );
+    }
 
     // Add Multiple Employees
     const employees = [

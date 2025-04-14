@@ -72,36 +72,59 @@ class ManagerController {
   }
 
   static async createSchedule(req, res) {
-    const { employee_id } = req.body;
-
+    const { employee_id, shift_ids } = req.body;
+    console.log("Incoming schedule creation request");
+    console.log("employee_id:", employee_id);
+    console.log("shift_ids:", shift_ids);
+  
     try {
-      // Check if this employee already has schedule entries
-      const checkQuery = `
-        SELECT COUNT(*) AS count FROM schedules
-        WHERE employee_id = ?
-      `;
+      if (!shift_ids || !Array.isArray(shift_ids) || shift_ids.length === 0) {
+        console.warn("Invalid shift_ids:", shift_ids);
+        return res.status(400).json({ error: 'Shift list is required to create a schedule.' });
+      }
 
-      db.query(checkQuery, [employee_id], async (err, results) => {
-        if (err) return res.status(500).json({ error: 'Database error during schedule validation' });
-
-        const count = results[0].count;
-        if (count > 0) {
-          return res.status(400).json({ error: 'Schedule already exists for this employee. Please edit or delete it.' });
-        }
-
-        const result = await Schedule.createFromShifts(employee_id);
-        await new AuditLog({
-          employee_id,
-          action: 'Schedule Created',
-          timestamp: new Date()
-        }).save();
-
-        res.status(201).json(result);
+  
+      // Get all existing schedules for this employee
+      const existingSchedules = await Schedule.getAll({
+        where: { employee_id }
       });
+  
+      // Group existing schedules by schedule_id to get full sets of shift_ids
+      const scheduleMap = {};
+  
+      for (const sched of existingSchedules) {
+        if (!scheduleMap[sched.schedule_id]) {
+          scheduleMap[sched.schedule_id] = [];
+        }
+        scheduleMap[sched.schedule_id].push(sched.shift_id);
+      }
+  
+      // Normalize shift sets for comparison
+      const newShiftSet = [...shift_ids].sort().join(',');
+  
+      const isDuplicate = Object.values(scheduleMap).some(existingSet =>
+        [...existingSet].sort().join(',') === newShiftSet
+      );
+  
+      if (isDuplicate) {
+        return res.status(400).json({ error: 'A schedule with this exact set of shifts already exists.' });
+      }
+  
+      // Proceed to create the schedule
+      const result = await Schedule.createFromShifts(employee_id, shift_ids);
+      await new AuditLog({
+        employee_id,
+        action: 'Schedule Created',
+        timestamp: new Date()
+      }).save();
+  
+      res.status(201).json(result);
     } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create schedule' });
     }
   }
+  
 
   static async editShift(req, res) {
     const { id } = req.params;

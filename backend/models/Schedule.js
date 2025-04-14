@@ -1,19 +1,52 @@
 const db = require('../config/db');
 
 class Schedule {
-  static createFromShifts(employee_id) {
+  static createFromShifts(employee_id, shift_ids) {
     return new Promise((resolve, reject) => {
-      const queryShifts = 'SELECT * FROM shifts WHERE employee_id = ? ORDER BY shift_date, start_time';
-      db.query(queryShifts, [employee_id], (err, shifts) => {
+      if (!Array.isArray(shift_ids) || shift_ids.length === 0) {
+        return reject(new Error('No shifts provided for schedule creation'));
+      }
+
+      // Fetch only the selected shifts
+      const placeholders = shift_ids.map(() => '?').join(',');
+      const queryShifts = `SELECT * FROM shifts WHERE shift_id IN (${placeholders}) AND employee_id = ? ORDER BY shift_date, start_time`;
+      db.query(queryShifts, [...shift_ids, employee_id], (err, shifts) => {
         if (err) return reject(new Error('Error fetching shifts'));
-        if (shifts.length === 0) return reject(new Error('No shifts found for this employee'));
+        if (shifts.length === 0) return reject(new Error('No matching shifts found for this employee'));
 
-        const insertQuery = 'INSERT INTO schedules (employee_id, shift_date, start_time, end_time) VALUES ?';
-        const values = shifts.map(r => [employee_id, r.shift_date, r.start_time, r.end_time]);
+        // Check for existing schedules
+        const checkQuery = `
+          SELECT shift_date, start_time, end_time 
+          FROM schedules 
+          WHERE employee_id = ?
+        `;
 
-        db.query(insertQuery, [values], (err) => {
-          if (err) return reject(new Error('Failed to insert schedule'));
-          resolve({ message: 'Schedule created successfully from existing shifts.' });
+        db.query(checkQuery, [employee_id], (err, existing) => {
+          if (err) return reject(new Error('Failed to check existing schedules'));
+
+          const existingSet = new Set(existing.map(s => `${s.shift_date}-${s.start_time}-${s.end_time}`));
+
+          const newValues = shifts.filter(r => {
+            const key = `${r.shift_date}-${r.start_time}-${r.end_time}`;
+            return !existingSet.has(key);
+          });
+
+          if (newValues.length === 0) {
+            return reject(new Error('All selected shifts are already scheduled.'));
+          }
+
+          const insertQuery = 'INSERT INTO schedules (employee_id, shift_date, start_time, end_time, shift_id) VALUES ?';
+          const values = newValues.map(r => [employee_id, r.shift_date, r.start_time, r.end_time, r.shift_id]);
+
+          console.log(' Filtered schedule values to insert:', values);
+
+          db.query(insertQuery, [values], (err) => {
+            if (err) {
+              console.error(' Insert error:', err.sqlMessage || err.message || err);
+              return reject(new Error('Failed to insert schedule'));
+            }
+            resolve({ message: 'Schedule created successfully from selected shifts.' });
+          });
         });
       });
     });
